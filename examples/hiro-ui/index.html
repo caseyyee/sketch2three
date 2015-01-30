@@ -1,0 +1,63 @@
+<!DOCTYPE html><html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+
+    <title>Spherical Panorama THREE test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+        }
+        #three-box canvas {
+            display: block;
+            margin: auto;
+            padding: 0;
+            border : 0;
+        }
+    </style>
+    
+</head>
+<body>
+    <div id="three-box"></div>
+
+    <script src='js/three.min.js'></script>
+    <script src='js/OrbitControls.js'></script>
+    <script src='../../dist/sketch2three.js'></script>
+    
+    <script>
+    var renderer = new THREE.WebGLRenderer( { antialias: true } );
+    // var effect = new THREE.VREffect(renderer);
+    // effect.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    
+    var scene = new THREE.Scene();
+    
+    var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.0001, 10000 );
+    camera.position.z = 0.0001;
+    var controls = new THREE.OrbitControls(camera);
+    //var controls = new THREE.VRControls(camera);
+
+    Sketch2three.load('images/index.json',{ exclude: ['thunder.png'] }).then(function(meshes) {
+        var group = new THREE.Object3D();
+        group.position.z = -800;
+        meshes.forEach(function(mesh) {
+            group.add(mesh);
+        });
+        scene.add(group);
+    });
+
+    function animate() {
+        controls.update();
+        //effect.render(scene, camera);
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+     };
+     
+     animate();
+
+    </script>
+ </body>
+</html>
