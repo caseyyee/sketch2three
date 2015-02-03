@@ -20,8 +20,11 @@ var Sketch2three = (function() {
       });
 
       var mesh = new THREE.Mesh(geometry, material);
-      mesh.scale.set(props.width, props.height, 1);
-      mesh.position.set(props.x, props.y, 0);
+
+      var scale = self.pixelScale;
+
+      mesh.scale.set(props.width * scale, props.height * scale, 1);
+      mesh.position.set(props.x * scale, props.y * scale, 0);
       mesh.userData = props;
       
       return mesh;
@@ -33,6 +36,8 @@ var Sketch2three = (function() {
     
     this.load = function(url, opts) {
       self.opts = opts || {};
+
+      self.pixelScale = self.opts.pixelScale || 1;
 
       return new Promise(function(resolve, reject) {
         if (!url) {

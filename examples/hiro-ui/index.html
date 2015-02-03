@@ -3,7 +3,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
 
-    <title>Spherical Panorama THREE test</title>
+    <title>Sketch2three</title>
     <style>
         body {
             margin: 0;
@@ -24,25 +24,35 @@
 
     <script src='js/three.min.js'></script>
     <script src='js/OrbitControls.js'></script>
+    <script src="js/VRControls.js"></script>
+    <script src="js/VREffect.js"></script>
+    <script src="js/webvr-polyfill.js"></script>
+    <script src="js/webvr-manager.js"></script>
     <script src='../../dist/sketch2three.js'></script>
     
     <script>
     var renderer = new THREE.WebGLRenderer( { antialias: true } );
-    // var effect = new THREE.VREffect(renderer);
-    // effect.setSize(window.innerWidth, window.innerHeight);
-    renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
+
+    var effect = new THREE.VREffect(renderer);
+    effect.setSize(window.innerWidth, window.innerHeight);
+
+    var manager = new WebVRManager(effect);
     
     var scene = new THREE.Scene();
-    
+
     var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.0001, 10000 );
     camera.position.z = 0.0001;
     var controls = new THREE.OrbitControls(camera);
-    //var controls = new THREE.VRControls(camera);
+    
+    var vrcontrols = new THREE.VRControls(camera);
 
-    Sketch2three.load('images/index.json',{ exclude: ['thunder.png'] }).then(function(meshes) {
+    Sketch2three.load('images/index.json',{ 
+        exclude: ['thunder.png'],
+        pixelScale: 0.001
+    }).then(function(meshes) {
         var group = new THREE.Object3D();
-        group.position.z = -800;
+        group.position.z = -1;
         meshes.forEach(function(mesh) {
             group.add(mesh);
         });
@@ -50,11 +60,25 @@
     });
 
     function animate() {
-        controls.update();
-        //effect.render(scene, camera);
-        renderer.render(scene, camera);
+        
+    
+        if (manager.isVRMode()) {
+            effect.render(scene, camera);
+            vrcontrols.update();
+        } else {
+            renderer.render(scene, camera);
+            controls.update();
+        }
+
         requestAnimationFrame(animate);
      };
+
+     function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        effect.setSize( window.innerWidth, window.innerHeight );
+    };
      
      animate();
 
