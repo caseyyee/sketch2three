@@ -1,6 +1,17 @@
 {
   "hiro.sketch" : {
     "Page 1" : {
+      "fav-mozvr 3" : {
+        "fav-mozvr 3.png" : {
+          "format" : "png",
+          "height" : 300,
+          "x" : 2274,
+          "y" : 550,
+          "width" : 210,
+          "name" : "fav-mozvr 3",
+          "scale" : 1
+        }
+      },
       "fav-mozvr" : {
         "fav-mozvr.png" : {
           "format" : "png",
@@ -23,6 +34,28 @@
           "scale" : 1
         }
       },
+      "fav-mozvr 2" : {
+        "fav-mozvr 2.png" : {
+          "format" : "png",
+          "height" : 300,
+          "x" : 1787,
+          "y" : 552,
+          "width" : 210,
+          "name" : "fav-mozvr 2",
+          "scale" : 1
+        }
+      },
+      "fav-sechelt 2" : {
+        "fav-sechelt 2.png" : {
+          "format" : "png",
+          "height" : 300,
+          "x" : 2027,
+          "y" : 552,
+          "width" : 210,
+          "name" : "fav-sechelt 2",
+          "scale" : 1
+        }
+      },
       "thunder" : {
         "thunder.png" : {
           "format" : "png",
@@ -34,14 +67,14 @@
           "scale" : 1
         }
       },
-      "fav-mozvr 2" : {
-        "fav-mozvr 2.png" : {
+      "fav-sechelt 3" : {
+        "fav-sechelt 3.png" : {
           "format" : "png",
           "height" : 300,
-          "x" : 1768,
+          "x" : 2514,
           "y" : 550,
           "width" : 210,
-          "name" : "fav-mozvr 2",
+          "name" : "fav-sechelt 3",
           "scale" : 1
         }
       },
@@ -53,17 +86,6 @@
           "y" : 550,
           "width" : 210,
           "name" : "fav-sechelt",
-          "scale" : 1
-        }
-      },
-      "fav-sechelt 2" : {
-        "fav-sechelt 2.png" : {
-          "format" : "png",
-          "height" : 300,
-          "x" : 2008,
-          "y" : 550,
-          "width" : 210,
-          "name" : "fav-sechelt 2",
           "scale" : 1
         }
       }

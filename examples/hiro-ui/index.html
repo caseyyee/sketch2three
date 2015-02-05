@@ -23,64 +23,304 @@
     <div id="three-box"></div>
 
     <script src='js/three.min.js'></script>
-    <script src='js/OrbitControls.js'></script>
+    <script src='js/MouseControls.js'></script>
     <script src="js/VRControls.js"></script>
+    <script src="js/cursor.js"></script>
     <script src="js/VREffect.js"></script>
     <script src="js/webvr-polyfill.js"></script>
     <script src="js/webvr-manager.js"></script>
     <script src='../../dist/sketch2three.js'></script>
     
     <script>
+    var pixelScale = 0.001;
+
+    var intersected; // intersected object
+
+    var selected;   // selected object
+
+    var selectedGroup;
+
+    var raycaster = new THREE.Raycaster();
+    
+    var mouse = new THREE.Vector2();
+
+    var objects = [];
+
     var renderer = new THREE.WebGLRenderer( { antialias: true } );
     document.body.appendChild(renderer.domElement);
 
     var effect = new THREE.VREffect(renderer);
     effect.setSize(window.innerWidth, window.innerHeight);
 
-    var manager = new WebVRManager(effect);
+    var manager = new WebVRManager(effect, { hideButton: true });
     
     var scene = new THREE.Scene();
 
     var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.0001, 10000 );
-    camera.position.z = 0.0001;
-    var controls = new THREE.OrbitControls(camera);
+    
+    var controls = new THREE.MouseControls(camera);
+
+    var pointer = new THREE.Mesh(new THREE.SphereGeometry( 0.000001, 0.000001, 0.000001 ),
+                                 new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide } ));
+
+    function getParentGroup(mesh) {
+        if (mesh.type == 'Group') {
+            return mesh;
+        }
+        return getParentGroup.call(this, mesh.parent)
+    }
+
+    var cursor = new THREE.Cursor(camera, renderer, { pointer: pointer });
+    cursor.addEventListener('click', function() {
+        if (intersected) {
+            selected = intersected;
+            console.log(selected.name + ' selected');
+
+            selectedGroup = getParentGroup(selected);
+            //intersect();
+        } else {
+            selected = null;
+            selectedGroup = null;
+        }
+    });
+    scene.add(cursor);
     
     var vrcontrols = new THREE.VRControls(camera);
 
-    Sketch2three.load('images/index.json',{ 
-        exclude: ['thunder.png'],
-        pixelScale: 0.001
-    }).then(function(meshes) {
-        var group = new THREE.Object3D();
-        group.position.z = -1;
-        meshes.forEach(function(mesh) {
-            group.add(mesh);
-        });
-        scene.add(group);
-    });
+    function lockPointer() {
+        var pointerLockElement =
+            document.pointerLockElement ||
+            document.mozPointerLockElement ||
+            document.webkitPointerLockElement;
 
-    function animate() {
+            renderer.domElement.requestPointerLock();
+
+     };
+
+    function fullscreen(event) {
+        if (manager.isVRMode()) {
+            effect.setFullScreen(true);
+            lockPointer();
+        } else {
+            console.log('not vr enabled');
+        }
         
+    };
     
+    
+
+    // find intersections
+    function intersect() {
+        var vector = cursor.localToWorld( cursor.pointer.position.clone() );
+        raycaster.set( camera.position, vector.sub( camera.position ).normalize() );
+
+        var intersects = raycaster.intersectObjects( objects );
+
+        if ( intersects.length > 0 ) {
+
+            if ( intersected != intersects[ 0 ].object ) {
+
+                // if ( intersected ) intersected.material.emissive.setHex( intersected.currentHex );
+
+                intersected = intersects[ 0 ].object;
+                // intersected.currentHex = intersected.material.emissive.getHex();
+                // intersected.material.emissive.setHex( 0xffff00 );
+
+            }
+
+        } else {
+
+            // if ( intersected ) intersected.material.emissive.setHex( intersected.currentHex );
+
+            intersected = null;
+
+        }
+    }
+
+
+    function intersectMouse() {
+        var vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+        vector.unproject( camera );
+
+        raycaster.set( camera.position, vector.sub( camera.position ).normalize() );
+        var intersects = raycaster.intersectObjects( objects );
+
+        if ( intersects.length > 0 ) {
+
+            if ( intersected != intersects[ 0 ].object ) {
+
+                // if ( intersected ) intersected.material.emissive.setHex( intersected.currentHex );
+
+                intersected = intersects[ 0 ].object;
+                // intersected.currentHex = intersected.material.emissive.getHex();
+                // intersected.material.emissive.setHex( 0xffff00 );
+
+            }
+
+        } else {
+
+            //if ( intersected ) intersected.material.emissive.setHex( intersected.currentHex );
+
+            intersected = null;
+
+        }
+
+    }
+    
+    
+    function animate() {
         if (manager.isVRMode()) {
             effect.render(scene, camera);
             vrcontrols.update();
+            intersect();
         } else {
             renderer.render(scene, camera);
             controls.update();
+            intersectMouse();
         }
 
+        cursor.update();
         requestAnimationFrame(animate);
      };
 
-     function onWindowResize() {
+    function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
 
         effect.setSize( window.innerWidth, window.innerHeight );
     };
+
+    function onDocumentMouseMove(event) {
+        event.preventDefault();
+
+        mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    };
+
+    function onMouseWheel(e) {
+        e.preventDefault();
+        var speed = 0.1;
+        
+        if (!e) e = event;
+        var direction = (e.detail<0 || e.wheelDelta>0) ? 1 : -1;
+        
+        if (selectedGroup) {            
+            var depth = selectedGroup.userData.depth += (speed * direction);
+            
+            bend(selectedGroup, depth);
+        }
+    };
+
+    function bend( group, amount, multiMaterialObject ) {
+        function bendVertices( mesh, amount, parent ) {
+            var geometry = mesh.geometry;
+            
+            if (!mesh.userData.geometry) {
+                mesh.userData.geometry = geometry.clone();
+            } else {
+                mesh.geometry = mesh.userData.geometry.clone();
+                mesh.geometry.verticesNeedUpdate = true;
+            }
+
+            var vertices = mesh.geometry.vertices;
+
+            if (!parent) {
+                parent = mesh;
+            }
+
+            for (var i = 0; i < vertices.length; i++) {
+                var vertex = vertices[i];
+
+               // apply bend calculations on vertexes from world coordinates
+               parent.updateMatrixWorld();
+               
+               var worldVertex = parent.localToWorld(vertex);
+               
+               var worldX = Math.sin( worldVertex.x / amount) * amount;
+               var worldZ = - Math.cos( worldVertex.x / amount ) * amount;
+               var worldY = worldVertex.y;
+               
+               // convert world coordinates back into local object coordinates.
+               var localVertex = parent.worldToLocal(new THREE.Vector3(worldX, worldY, worldZ));
+               vertex.x = localVertex.x;
+               vertex.z = localVertex.z;
+               vertex.y = localVertex.y;
+            };
+
+            mesh.geometry.computeBoundingSphere();
+            mesh.geometry.verticesNeedUpdate = true;
+        }
+
+        for ( var i = 0; i < group.children.length; i ++ ) {
+            var element = group.children[ i ];
+
+            if (element.geometry.vertices) {
+                if (multiMaterialObject) {
+                    bendVertices( element, amount, group);
+                } else {
+                    bendVertices( element, amount);
+                }
+            }
+        }
+
+        if (group.children.length == 0) {
+            bendVertices(group, amount);
+        }
+    };
+
+    function loadSketch(url, opts) {
+        var xOffset = -(opts.artboardWidth / 2 * opts.pixelScale);
+        var yOffset = (opts.artboardHeight / 2 * opts.pixelScale);
+
+        Sketch2three.load(url, opts).then(function(meshes) {
+            meshes.forEach(function(mesh) {
+                var group = new THREE.Group();
+
+                mesh.position.x += xOffset;
+                mesh.position.y += yOffset;
+                mesh.position.z = -opts.depth;
+
+                group.add(mesh);
+
+                scene.add(group);
+
+                objects.push(mesh);
+
+                group.userData.depth = opts.depth;
+
+                bend(group, opts.depth);
+            });         
+        })
+    };
+
+    function onKeyDown(event) {
+    };
+
+    function init() {
+        window.addEventListener('resize', onWindowResize);
+
+        document.addEventListener( 'dblclick', fullscreen);
+
+        document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+
+        window.addEventListener('keydown', onKeyDown);
+
+        document.body.addEventListener('DOMMouseScroll', onMouseWheel, false);
+        document.body.addEventListener('mousewheel', onMouseWheel, false);
+
+        loadSketch('images/index.json', { 
+            exclude: ['thunder.png'],
+            pixelScale: pixelScale,
+            artboardWidth: 3600,
+            artboardHeight: 900,
+            depth: 1
+            
+        });
+        animate();
+    }
+
+    init();
      
-     animate();
 
     </script>
  </body>

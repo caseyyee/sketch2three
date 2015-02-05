@@ -17,14 +17,19 @@ var Sketch2three = (function() {
       var material = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true
+        //wireframe: true
       });
 
-      var mesh = new THREE.Mesh(geometry, material);
+      var mesh = new THREE.Mesh(geometry.clone(), material);
 
       var scale = self.pixelScale;
 
+      var y = props.y + (props.height / 2);
+      var x = props.x + (props.width / 2);
+
+      mesh.name = node.name;
       mesh.scale.set(props.width * scale, props.height * scale, 1);
-      mesh.position.set(props.x * scale, props.y * scale, 0);
+      mesh.position.set(x * scale, -y * scale, 0);
       mesh.userData = props;
       
       return mesh;
@@ -76,12 +81,6 @@ var Sketch2three = (function() {
           }
         }
 
-        function nameNotExcluded(name) {
-          console.log(name);
-          return false;
-        }
-
-      
         loadJson(url)
           .then(function(response) {
               return JSON.parse(response);
@@ -92,7 +91,7 @@ var Sketch2three = (function() {
             propertyTest(data)
 
             var filtered = self.slices.filter(function(slice) {
-              return (self.opts.exclude.indexOf(slice.name) > -1) ? true : false;
+              return (self.opts.exclude.indexOf(slice.name) === -1) ? true : false;
             });
 
             var slices = filtered.map(function(slice) {
