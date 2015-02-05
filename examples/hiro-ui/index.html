@@ -294,6 +294,12 @@
     };
 
     function onKeyDown(event) {
+        //console.log(event.keyCode);
+        switch(event.keyCode) {
+            case 90:
+                vrcontrols.zeroSensor();
+                break;
+        }
     };
 
     function init() {
