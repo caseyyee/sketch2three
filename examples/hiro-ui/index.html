@@ -9,6 +9,7 @@
             margin: 0;
             padding: 0;
             background-color: #000000;
+            overflow: hidden;
         }
         #three-box canvas {
             display: block;
@@ -32,8 +33,6 @@
     <script src='../../dist/sketch2three.js'></script>
     
     <script>
-    var pixelScale = 0.001;
-
     var intersected; // intersected mesh
 
     var selected;   // selected mesh
@@ -336,7 +335,6 @@
     };
 
     function onKeyDown(event) {
-        console.log(event.keyCode);
         switch(event.keyCode) {
             case 90: // z
                 vrcontrols.zeroSensor();
@@ -360,10 +358,10 @@
         document.body.addEventListener('mousewheel', onMouseWheel, false);
 
         loadSketch('images/index.json', {           // Sketchtool exported json file.
-            depthMap: 'images/index-depth.json',    // Depthmap, omitting with set everything to default depth
-            exclude: ['thunder.png'],
-            pixelScale: pixelScale,
-            artboardWidth: 3600,
+            depthMap: 'images/index-depth.json',    // Depthmap, omitting with set everything to default depth.
+            exclude: ['thunder.png'],               // array of files to exlcude from importing.
+            pixelScale: 0.001,                      // pixel to three.js units.
+            artboardWidth: 3600,                    // sketch artboard size.
             artboardHeight: 900,
             depth: 1                                // default depth for Sketch assets.
         });

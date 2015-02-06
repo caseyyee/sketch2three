@@ -9,6 +9,7 @@
             margin: 0;
             padding: 0;
             background-color: #000000;
+            overflow: hidden;
         }
         #three-box canvas {
             display: block;
@@ -31,15 +32,7 @@
     <script src='../../dist/sketch2three.js'></script>
     
     <script>
-    var pixelScale = 0.001;
-
     var depthMap = {};
-
-    var raycaster = new THREE.Raycaster();
-    
-    var mouse = new THREE.Vector2();
-
-    var objects = [];
 
     var renderer = new THREE.WebGLRenderer( { antialias: true } );
     document.body.appendChild(renderer.domElement);
@@ -60,7 +53,6 @@
     function fullscreen(event) {
         if (manager.isVRMode()) {
             effect.setFullScreen(true);
-            lockPointer();
         } else {
             console.log('not vr enabled');
         }
@@ -218,8 +210,6 @@
 
                     scene.add(group);
 
-                    objects.push(mesh);
-
                     bend(group, depth);
 
                     depthMap.meshes[group.name] = {
@@ -232,7 +222,7 @@
     };
 
     function onKeyDown(event) {
-        console.log(event.keyCode);
+        //console.log(event.keyCode);
         switch(event.keyCode) {
             case 90: // z
                 vrcontrols.zeroSensor();
@@ -248,10 +238,10 @@
         window.addEventListener('keydown', onKeyDown);
 
         loadSketch('images/index.json', {           // Sketchtool exported json file.
-            depthMap: 'images/index-depth.json',    // Depthmap, omitting with set everything to default depth
-            exclude: ['thunder.png'],
-            pixelScale: pixelScale,
-            artboardWidth: 3600,
+            depthMap: 'images/index-depth.json',    // Depthmap, omitting with set everything to default depth.
+            exclude: ['thunder.png'],               // array of files to exlcude from importing.
+            pixelScale: 0.001,                      // pixel to three.js units.
+            artboardWidth: 3600,                    // sketch artboard size.
             artboardHeight: 900,
             depth: 1                                // default depth for Sketch assets.
         });
