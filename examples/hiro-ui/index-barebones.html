@@ -1,0 +1,266 @@
+<!DOCTYPE html><html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+
+    <title>Sketch2three</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+        }
+        #three-box canvas {
+            display: block;
+            margin: auto;
+            padding: 0;
+            border : 0;
+        }
+    </style>
+    
+</head>
+<body>
+    <div id="three-box"></div>
+
+    <script src='js/three.min.js'></script>
+    <script src='js/MouseControls.js'></script>
+    <script src="js/VRControls.js"></script>
+    <script src="js/VREffect.js"></script>
+    <script src="js/webvr-polyfill.js"></script>
+    <script src="js/webvr-manager.js"></script>
+    <script src='../../dist/sketch2three.js'></script>
+    
+    <script>
+    var pixelScale = 0.001;
+
+    var depthMap = {};
+
+    var raycaster = new THREE.Raycaster();
+    
+    var mouse = new THREE.Vector2();
+
+    var objects = [];
+
+    var renderer = new THREE.WebGLRenderer( { antialias: true } );
+    document.body.appendChild(renderer.domElement);
+
+    var effect = new THREE.VREffect(renderer);
+    effect.setSize(window.innerWidth, window.innerHeight);
+
+    var manager = new WebVRManager(effect, { hideButton: true });
+    
+    var scene = new THREE.Scene();
+
+    var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.0001, 10000 );
+    
+    var controls = new THREE.MouseControls(camera);
+
+    var vrcontrols = new THREE.VRControls(camera);
+
+    function fullscreen(event) {
+        if (manager.isVRMode()) {
+            effect.setFullScreen(true);
+            lockPointer();
+        } else {
+            console.log('not vr enabled');
+        }
+        
+    };
+    
+    function animate() {
+        if (manager.isVRMode()) {
+            effect.render(scene, camera);
+            vrcontrols.update();
+        } else {
+            renderer.render(scene, camera);
+            controls.update();
+        }
+
+        requestAnimationFrame(animate);
+     };
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        effect.setSize( window.innerWidth, window.innerHeight );
+    };
+
+    function bend( group, amount, multiMaterialObject ) {
+        function bendVertices( mesh, amount, parent ) {
+            var geometry = mesh.geometry;
+            
+            if (!mesh.userData.geometry) {
+                mesh.userData.geometry = geometry.clone();
+            } else {
+                mesh.geometry = mesh.userData.geometry.clone();
+                mesh.geometry.verticesNeedUpdate = true;
+            }
+
+            var vertices = mesh.geometry.vertices;
+
+            if (!parent) {
+                parent = mesh;
+            }
+
+            for (var i = 0; i < vertices.length; i++) {
+                var vertex = vertices[i];
+
+               // apply bend calculations on vertexes from world coordinates
+               parent.updateMatrixWorld();
+               
+               var worldVertex = parent.localToWorld(vertex);
+               
+               var worldX = Math.sin( worldVertex.x / amount) * amount;
+               var worldZ = - Math.cos( worldVertex.x / amount ) * amount;
+               var worldY = worldVertex.y;
+               
+               // convert world coordinates back into local object coordinates.
+               var localVertex = parent.worldToLocal(new THREE.Vector3(worldX, worldY, worldZ));
+               vertex.x = localVertex.x;
+               vertex.z = localVertex.z;
+               vertex.y = localVertex.y;
+            };
+
+            mesh.geometry.computeBoundingSphere();
+            mesh.geometry.verticesNeedUpdate = true;
+        }
+
+        for ( var i = 0; i < group.children.length; i ++ ) {
+            var element = group.children[ i ];
+
+            if (element.geometry.vertices) {
+                if (multiMaterialObject) {
+                    bendVertices( element, amount, group);
+                } else {
+                    bendVertices( element, amount);
+                }
+            }
+        }
+
+        if (group.children.length == 0) {
+            bendVertices(group, amount);
+        }
+    };
+
+    function loadDepth(url) {
+        return new Promise(function(resolve, reject) {
+            if (url === undefined) {
+                resolve();
+                return false;
+            };
+            
+            loadJson(url)
+                .then(function(response){
+                        return JSON.parse(response);
+                    }, function(err) {
+                        reject('Error parsing json');
+                    })
+                .then(function(data) {
+                    resolve(data);
+                })
+
+
+            function loadJson(url) {
+              return new Promise( function(resolve, reject) {
+                var xhr = new XMLHttpRequest();
+
+                xhr.onload = function() {
+                  resolve(xhr.response);
+                }
+
+                xhr.onerror = function() {
+                  reject(new Error('Some kind of network error, XHR failed.'))
+                }
+
+                xhr.open('GET', url);
+                xhr.send();
+              })
+            };
+        });
+    };
+
+    function loadSketch(url, opts) {
+        var xOffset = -(opts.artboardWidth / 2 * opts.pixelScale);
+        var yOffset = (opts.artboardHeight / 2 * opts.pixelScale);
+
+        depthMap = {
+            depth: opts.depth,
+            meshes: {}
+        };
+
+        Promise.all([Sketch2three.load(url, opts), loadDepth(opts.depthMap)])
+            .then(function(values) {
+                var meshes = values[0];
+                var depthMapData = values[1];
+                
+                if (depthMapData && depthMapData.hasOwnProperty('meshes')) {
+                    depthMap = depthMapData;
+                };
+
+                meshes.forEach(function(mesh) {
+                    var group = new THREE.Group();
+                    group.name = mesh.name;
+
+                    var depth;
+                    var depthMap_group = depthMap.meshes[group.name];
+                    if (depthMap_group && depthMap_group.hasOwnProperty('depth')) {
+                        depth = depthMap_group.depth;
+                    } else {
+                        depth = opts.depth;
+                    }
+
+                    mesh.position.x += xOffset;
+                    mesh.position.y += yOffset;
+                    mesh.position.z = -depth;
+
+                    group.add(mesh);
+
+                    scene.add(group);
+
+                    objects.push(mesh);
+
+                    bend(group, depth);
+
+                    depthMap.meshes[group.name] = {
+                        depth: depth
+                    };                    
+                });   
+            }, function(err) {
+                console.log(err);
+            })
+    };
+
+    function onKeyDown(event) {
+        console.log(event.keyCode);
+        switch(event.keyCode) {
+            case 90: // z
+                vrcontrols.zeroSensor();
+                break;
+        }
+    };
+
+    function init() {
+        window.addEventListener('resize', onWindowResize);
+
+        document.addEventListener('dblclick', fullscreen);
+
+        window.addEventListener('keydown', onKeyDown);
+
+        loadSketch('images/index.json', {           // Sketchtool exported json file.
+            depthMap: 'images/index-depth.json',    // Depthmap, omitting with set everything to default depth
+            exclude: ['thunder.png'],
+            pixelScale: pixelScale,
+            artboardWidth: 3600,
+            artboardHeight: 900,
+            depth: 1                                // default depth for Sketch assets.
+        });
+        animate();
+    }
+
+    init();
+     
+
+    </script>
+ </body>
+</html>
