@@ -34,11 +34,13 @@
     <script>
     var pixelScale = 0.001;
 
-    var intersected; // intersected object
+    var intersected; // intersected mesh
 
-    var selected;   // selected object
+    var selected;   // selected mesh
 
-    var selectedGroup;
+    var selectedGroup; // selected mesh group
+
+    var depthMap = {};
 
     var raycaster = new THREE.Raycaster();
     
@@ -117,23 +119,12 @@
         var intersects = raycaster.intersectObjects( objects );
 
         if ( intersects.length > 0 ) {
-
             if ( intersected != intersects[ 0 ].object ) {
-
-                // if ( intersected ) intersected.material.emissive.setHex( intersected.currentHex );
-
                 intersected = intersects[ 0 ].object;
-                // intersected.currentHex = intersected.material.emissive.getHex();
-                // intersected.material.emissive.setHex( 0xffff00 );
-
             }
 
         } else {
-
-            // if ( intersected ) intersected.material.emissive.setHex( intersected.currentHex );
-
             intersected = null;
-
         }
     }
 
@@ -146,25 +137,12 @@
         var intersects = raycaster.intersectObjects( objects );
 
         if ( intersects.length > 0 ) {
-
             if ( intersected != intersects[ 0 ].object ) {
-
-                // if ( intersected ) intersected.material.emissive.setHex( intersected.currentHex );
-
                 intersected = intersects[ 0 ].object;
-                // intersected.currentHex = intersected.material.emissive.getHex();
-                // intersected.material.emissive.setHex( 0xffff00 );
-
             }
-
         } else {
-
-            //if ( intersected ) intersected.material.emissive.setHex( intersected.currentHex );
-
             intersected = null;
-
         }
-
     }
     
     
@@ -204,9 +182,8 @@
         if (!e) e = event;
         var direction = (e.detail<0 || e.wheelDelta>0) ? 1 : -1;
         
-        if (selectedGroup) {            
-            var depth = selectedGroup.userData.depth += (speed * direction);
-            
+        if (selectedGroup) {
+            var depth = depthMap.meshes[selectedGroup.name].depth += (speed * direction);
             bend(selectedGroup, depth);
         }
     };
@@ -268,36 +245,104 @@
         }
     };
 
+    function loadDepth(url) {
+        return new Promise(function(resolve, reject) {
+            if (url === undefined) {
+                resolve();
+                return false;
+            };
+            
+            loadJson(url)
+                .then(function(response){
+                        return JSON.parse(response);
+                    }, function(err) {
+                        reject('Error parsing json');
+                    })
+                .then(function(data) {
+                    resolve(data);
+                })
+
+
+            function loadJson(url) {
+              return new Promise( function(resolve, reject) {
+                var xhr = new XMLHttpRequest();
+
+                xhr.onload = function() {
+                  resolve(xhr.response);
+                }
+
+                xhr.onerror = function() {
+                  reject(new Error('Some kind of network error, XHR failed.'))
+                }
+
+                xhr.open('GET', url);
+                xhr.send();
+              })
+            };
+        });
+    };
+
     function loadSketch(url, opts) {
         var xOffset = -(opts.artboardWidth / 2 * opts.pixelScale);
         var yOffset = (opts.artboardHeight / 2 * opts.pixelScale);
 
-        Sketch2three.load(url, opts).then(function(meshes) {
-            meshes.forEach(function(mesh) {
-                var group = new THREE.Group();
+        depthMap = {
+            depth: opts.depth,
+            meshes: {}
+        };
 
-                mesh.position.x += xOffset;
-                mesh.position.y += yOffset;
-                mesh.position.z = -opts.depth;
+        Promise.all([Sketch2three.load(url, opts), loadDepth(opts.depthMap)])
+            .then(function(values) {
+                var meshes = values[0];
+                var depthMapData = values[1];
+                
+                if (depthMapData && depthMapData.hasOwnProperty('meshes')) {
+                    depthMap = depthMapData;
+                };
 
-                group.add(mesh);
+                meshes.forEach(function(mesh) {
+                    var group = new THREE.Group();
+                    group.name = mesh.name;
 
-                scene.add(group);
+                    var depth;
+                    var depthMap_group = depthMap.meshes[group.name];
+                    if (depthMap_group && depthMap_group.hasOwnProperty('depth')) {
+                        depth = depthMap_group.depth;
+                    } else {
+                        depth = opts.depth;
+                    }
 
-                objects.push(mesh);
+                    mesh.position.x += xOffset;
+                    mesh.position.y += yOffset;
+                    mesh.position.z = -depth;
 
-                group.userData.depth = opts.depth;
+                    group.add(mesh);
 
-                bend(group, opts.depth);
-            });         
-        })
+                    scene.add(group);
+
+                    objects.push(mesh);
+
+                    bend(group, depth);
+
+                    depthMap.meshes[group.name] = {
+                        depth: depth
+                    };                    
+                });   
+            }, function(err) {
+                console.log(err);
+            })
+
+        
     };
 
     function onKeyDown(event) {
-        //console.log(event.keyCode);
+        console.log(event.keyCode);
         switch(event.keyCode) {
-            case 90:
+            case 90: // z
                 vrcontrols.zeroSensor();
+                break;
+            case 83: // s
+                prompt("Copy to clipboard: Ctrl+C, Enter", JSON.stringify(depthMap));
                 break;
         }
     };
@@ -305,9 +350,9 @@
     function init() {
         window.addEventListener('resize', onWindowResize);
 
-        document.addEventListener( 'dblclick', fullscreen);
+        document.addEventListener('dblclick', fullscreen);
 
-        document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+        document.addEventListener('mousemove', onDocumentMouseMove, false );
 
         window.addEventListener('keydown', onKeyDown);
 
@@ -315,12 +360,12 @@
         document.body.addEventListener('mousewheel', onMouseWheel, false);
 
         loadSketch('images/index.json', { 
+            depthMap: 'images/index-depth.json',
             exclude: ['thunder.png'],
             pixelScale: pixelScale,
             artboardWidth: 3600,
             artboardHeight: 900,
             depth: 1
-            
         });
         animate();
     }
