@@ -41,7 +41,7 @@ THREE.Cursor = function ( object, renderer, opts ) {
     new THREE.SphereGeometry( 0.02, 0.02, 0.02 ),
     new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
   );
-  this.pointer.position.z = -75;
+  this.pointer.position.z = -1;
   this.add( this.pointer );
   this.scene.add( this );
 
@@ -246,7 +246,7 @@ THREE.Cursor = function ( object, renderer, opts ) {
       resetPivot( scope.object );
       scope.scene.remove( scope );
       scope.parentScene.add( scope );
-      scope.pointer.scale.set( 50, 50, 50 );
+      scope.pointer.scale.set( 8000, 8000, 8000 );
       scope.previousCameraQuat = false;
     } else {
       resetPivot( scope.camera );

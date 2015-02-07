@@ -58,7 +58,8 @@
     var scene = new THREE.Scene();
 
     var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.0001, 10000 );
-    
+    scene.add(camera);
+
     var controls = new THREE.MouseControls(camera);
 
     var pointer = new THREE.Mesh(new THREE.SphereGeometry( 0.000001, 0.000001, 0.000001 ),
@@ -71,7 +72,8 @@
         return getParentGroup.call(this, mesh.parent)
     }
 
-    var cursor = new THREE.Cursor(camera, renderer, { pointer: pointer });
+    var cursor = new THREE.Cursor(camera, renderer, { pointer: pointer});
+
     cursor.addEventListener('click', function() {
         if (intersected) {
             selected = intersected;
@@ -84,28 +86,20 @@
             selectedGroup = null;
         }
     });
+
     scene.add(cursor);
     
     var vrcontrols = new THREE.VRControls(camera);
 
-    function lockPointer() {
-        var pointerLockElement =
-            document.pointerLockElement ||
-            document.mozPointerLockElement ||
-            document.webkitPointerLockElement;
-
-            renderer.domElement.requestPointerLock();
-
-     };
-
     function fullscreen(event) {
-        if (manager.isVRMode()) {
-            effect.setFullScreen(true);
-            lockPointer();
-        } else {
-            console.log('not vr enabled');
-        }
-        
+        manager.enterVR();
+
+        var el = renderer.domElement;
+
+        el.requestPointerLock = el.requestPointerLock ||
+                            el.mozRequestPointerLock ||
+                            el.webkitRequestPointerLock;
+        el.requestPointerLock();
     };
     
     

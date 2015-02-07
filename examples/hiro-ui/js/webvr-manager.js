@@ -149,7 +149,7 @@ WebVRManager.prototype.base64 = function(format, base64) {
  */
 WebVRManager.prototype.activateVR = function() {
   // Make it possible to enter VR via double click.
-  window.addEventListener('dblclick', this.enterVR.bind(this));
+  //window.addEventListener('dblclick', this.enterVR.bind(this));
   // Or via double tap.
   window.addEventListener('touchend', this.onTouchEnd.bind(this));
   // Or via clicking on the VR button.
