@@ -4,7 +4,7 @@ var webserver = require('gulp-webserver');
 var concat = require('gulp-concat');
 var jshint = require('gulp-jshint');
 var sketch = require('gulp-sketch');
-var browserify = require('browserify'); 
+var browserify = require('browserify');
 
 var server = {
   host: 'localhost',
@@ -34,15 +34,8 @@ gulp.task('webserver', function() {
     }));
 });
 
-gulp.task('scripts', function() {
-  gulp.src('./src/*.js')
-    .pipe(gulp.dest('./dist/'))
-})
-
 gulp.task('watch', function() {
   gulp.watch('./examples/assets/sketch/*.sketch', ['sketch']);
-  gulp.watch('./examples/hiro-ui/*.html');
-  gulp.watch('./src/*.js', ['scripts']);
 });
 
 gulp.task('default', ['webserver', 'watch']);

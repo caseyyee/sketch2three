@@ -30,7 +30,7 @@
     <script src="js/VREffect.js"></script>
     <script src="js/webvr-polyfill.js"></script>
     <script src="js/webvr-manager.js"></script>
-    <script src='../../dist/sketch2three.js'></script>
+    <script src='../../sketch2three.js'></script>
     
     <script>
     var intersected; // intersected mesh
@@ -53,7 +53,7 @@
     var effect = new THREE.VREffect(renderer);
     effect.setSize(window.innerWidth, window.innerHeight);
 
-    var manager = new WebVRManager(effect, { hideButton: true });
+    var manager = new WebVRManager(renderer, effect, { hideButton: true });
     
     var scene = new THREE.Scene();
 
