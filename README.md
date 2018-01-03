@@ -2,7 +2,7 @@
 
 Convert Sketch files to three.js meshes.
 
-![Sketch2three in action!](https://dl.dropboxusercontent.com/u/3803151/images/sketch2three.gif)
+![Sketch2three in action](https://raw.githubusercontent.com/caseyyee/sketch2three/master/images/sketch2three.gif)
 
 
 ## To use
